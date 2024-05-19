@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>World Food Trucks Layout Builder v.1</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+        }
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        #parking-lot {
+            position: relative;
+            width: 1920px; /* Fixed width */
+            height: 1080px; /* Fixed height */
+            background-image: url('https://static.wixstatic.com/media/18410c_d75797bbf4dc4473968456f7fe765fef~mv2.png');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden; /* Prevent overflow */
+        }
+        .blur {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+        .food-truck {
+            position: absolute;
+            cursor: grab;
+            background-color: #ff6347;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            transform-origin: center center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+        .food-truck .truck-number {
+            position: absolute;
+            transform: rotate(0deg);
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #000;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 10px;
+        }
+        .food-truck:active {
+            cursor: grabbing;
+        }
+        .selected {
+            border: 2px solid blue;
+        }
+        #maximize-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 20;
+            display: none;
+        }
+        #trash-can {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 50px;
+            height: 50px;
+            background: url('trash_icon.png') no-repeat center center;
+            background-size: cover;
+            visibility: hidden;
+            z-index: 10;
+        }
+        #menu {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ccc;
+            display: none;
+            z-index: 10;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        #truck-selector, #size-input, #save-load-panel, #ruler-panel {
+            position: fixed;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        #truck-selector {
+            bottom: 20px;
+            right: 20px;
+        }
+        #size-input {
+            bottom: 20px;
+            right: 20px;
+            margin-bottom: 100px;
+        }
+        #save-load-panel {
+            bottom: 20px;
+            left: 20px;
+        }
+        #ruler-panel {
+            top: 20px;
+            left: 20px;
+        }
+        .button {
+            margin: 3px;
+            cursor: pointer;
+            box-sizing: border-box;
+            width: 80px;
+            text-align: center;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .red-button {
+            background-color: red;
+            color: white;
+        }
+        .menu-button {
+            margin: 3px;
+            cursor: pointer;
+            box-sizing: border-box;
+            width: 70px;
+            text-align: center;
+            padding: 3px;
+            border-radius: 5px;
+            font-size: 10px;
+        }
+        input[type="number"] {
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 8px;
+            box-sizing: border-box;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .delete-button {
+            background-color: red;
+            color: white;
+        }
+        .delete-button:hover {
+            background-color: darkred;
+        }
+        #message-box {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+        .ruler-point {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: blue;
+            border-radius: 50%;
+            z-index: 11;
+        }
+        #ruler-measurement {
+            background-color: white;
+            border: 1px solid blue;
+            padding: 2px 5px;
+            border-radius: 5px;
+            z-index: 11;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="maximize-message">
+        Please maximize the window for best results.
+    </div>
+    <div id="container">
+        <div id="parking-lot">
+            <!-- Parking lot area -->
+        </div>
+    </div>
+    <div id="size-input">
+        <label for="truck-width">Width (5-10 ft):</label>
+        <input type="number" id="truck-width" name="truck-width" min="5" max="10" value="8" step="1">
+        <label for="truck-length">Length (10-40 ft):</label>
+        <input type="number" id="truck-length" name="truck-length" min="10" max="40" value="24" step="1">
+        <button class="button red-button" id="get-truck" onclick="createTruck()">Get Food Truck</button>
+        <button class="button" id="truck-action-button" style="display: none;" onclick="createOrUpdateTruck()">Update</button>
+    </div>
+    <div id="message-box">Your food truck has been created!</div>
+    <div id="trash-can"></div>
+    <div id="menu">
+        <button class="menu-button" onclick="rotateTruck(90)">Rotate 90°</button>
+        <button class="menu-button" onclick="rotateTruck(180)">Rotate 180°</button>
+        <button class="menu-button" onclick="rotateTruck(270)">Rotate 270°</button>
+        <button class="menu-button" onclick="rotateTruck(5)">Rotate 5°</button>
+        <button class="menu-button" onclick="rotateTruck(-5)">Rotate -5°</button>
+        <button class="menu-button delete-button" onclick="deleteTruck()">Delete</button>
+    </div>
+    <div id="save-load-panel">
+        <button class="button" onclick="saveConfiguration()">Save</button>
+        <input type="file" id="load-file" style="display: none;" onchange="loadConfiguration(event)">
+        <button class="button" onclick="document.getElementById('load-file').click()">Load</button>
+        <button class="button" onclick="exportToPDF()">PDF</button>
+    </div>
+    <div id="ruler-panel">
+        <button class="button" onclick="enableRuler()">Ruler</button>
+        <button class="button" onclick="clearRuler()">Clear</button>
+        <div id="ruler-measurement"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        const pixelToFootRatio = 1.626;  // Adjusted pixel-to-foot ratio
+        let truckCount = 0;
+        let selectedTruck = null;
+        let currentSize = { width: 8, height: 24 }; // Default size
+        let isDragging = false;
+        let shiftX, shiftY;
+        let availableNumbers = [];
+        let rulerEnabled = false;
+        let rulerPoints = [];
+
+        function checkWindowSize() {
+            const maximizeMessage = document.getElementById('maximize-message');
+            const parkingLot = document.getElementById('parking-lot');
+            const isMaximized = window.innerWidth >= screen.availWidth - 20 && window.innerHeight >= screen.availHeight - 100;
+            if (!isMaximized) {
+                maximizeMessage.style.display = 'block';
+                parkingLot.classList.add('blur');
+            } else {
+                maximizeMessage.style.display = 'none';
+                parkingLot.classList.remove('blur');
+            }
+        }
+
+        window.addEventListener('resize', checkWindowSize);
+        window.addEventListener('load', checkWindowSize);
+
+        function createOrUpdateTruck() {
+            const width = parseInt(document.getElementById('truck-width').value, 10);
+            const length = parseInt(document.getElementById('truck-length').value, 10);
+            if (width >= 5 && width <= 10 && length >= 10 && length <= 40) {
+                currentSize = { width, height: length };
+                if (selectedTruck) {
+                    selectedTruck.style.width = (width * pixelToFootRatio) + 'px';
+                    selectedTruck.style.height = (length * pixelToFootRatio) + 'px';
+                    selectedTruck.style.transform = `rotate(${getRotationDegrees(selectedTruck)}deg)`;  // Keep rotation
+                } else {
+                    addNewTruck();  // Create a new truck
+                }
+            } else {
+                alert('Please enter valid dimensions: width 5-10 feet, length 10-40 feet.');
+            }
+            resetButtons();
+            unselectTruck(); // Automatically unselect after updating or creating truck
+        }
+
+        function createTruck() {
+            currentSize = { width: 8, height: 24 }; // Default size for new truck
+            addNewTruck();
+            resetButtons();
+            unselectTruck(); // Automatically unselect after creating truck
+        }
+
+        function addNewTruck() {
+            if (!currentSize) {
+                return; // If no size is selected, do nothing.
+            }
+
+            const truckNumber = getNextTruckNumber();
+            const newTruck = document.createElement('div');
+            newTruck.className = 'food-truck';
+            newTruck.id = 'truck' + truckNumber;
+            newTruck.style.width = (currentSize.width * pixelToFootRatio) + 'px';
+            newTruck.style.height = (currentSize.height * pixelToFootRatio) + 'px';
+            newTruck.style.transform = 'rotate(0deg)'; // Reset rotation
+
+            // Get the position of the size-input box
+            const sizeInputBox = document.getElementById('size-input').getBoundingClientRect();
+            const parkingLotRect = document.getElementById('parking-lot').getBoundingClientRect();
+
+            // Calculate the new position relative to the size-input box
+            const newLeft = sizeInputBox.left + window.scrollX - parkingLotRect.left;
+            const newTop = sizeInputBox.top + window.scrollY - parkingLotRect.top + sizeInputBox.height + 10; // Add some offset below the size-input box
+
+            newTruck.style.left = newLeft + 'px';
+            newTruck.style.top = newTop + 'px';
+
+            const truckNumberDiv = document.createElement('div');
+            truckNumberDiv.className = 'truck-number';
+            truckNumberDiv.textContent = truckNumber;
+            newTruck.appendChild(truckNumberDiv);
+
+            newTruck.draggable = false;
+            newTruck.onmousedown = function(e) {
+                dragMouseDown(e, newTruck);
+            };
+            newTruck.onclick = function(e) {
+                selectTruck(e);
+            };
+
+            document.getElementById('parking-lot').appendChild(newTruck);
+            currentSize = { width: 8, height: 24 }; // Reset the current size
+            document.getElementById('truck-width').value = 8;
+            document.getElementById('truck-length').value = 24;
+            showMessageBox();
+        }
+
+        function showMessageBox() {
+            const messageBox = document.getElementById('message-box');
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 2000);
+        }
+
+        function dragMouseDown(e, truck) {
+            e.preventDefault();
+            const truckRect = truck.getBoundingClientRect();
+            const parkingLotRect = document.getElementById('parking-lot').getBoundingClientRect();
+
+            shiftX = e.clientX - truckRect.left;
+            shiftY = e.clientY - truckRect.top;
+
+            isDragging = true;
+
+            truck.style.position = 'absolute';
+            truck.style.zIndex = 1000;
+
+            function moveAt(pageX, pageY) {
+                // Calculate new position
+                const newLeft = pageX - parkingLotRect.left - shiftX;
+                const newTop = pageY - parkingLotRect.top - shiftY;
+
+                // Constrain to parking lot bounds
+                if (newLeft < 0) newLeft = 0;
+                if (newTop < 0) newTop = 0;
+                if (newLeft + truck.offsetWidth > parkingLotRect.width) newLeft = parkingLotRect.width - truck.offsetWidth;
+                if (newTop + truck.offsetHeight > parkingLotRect.height) newTop = parkingLotRect.height - truck.offsetHeight;
+
+                truck.style.left = newLeft + 'px';
+                truck.style.top = newTop + 'px';
+            }
+
+            function onMouseMove(event) {
+                if (isDragging) {
+                    moveAt(event.clientX, event.clientY);
+                }
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                truck.onmouseup = null;
+                document.getElementById('trash-can').style.visibility = 'hidden'; // Hide trash can
+                unselectTruck(); // Automatically unselect after moving truck
+            }, { once: true });
+
+            document.getElementById('trash-can').style.visibility = 'visible'; // Show trash can
+            truck.ondragstart = function() {
+                return false;
+            };
+        }
+
+        function selectTruck(e) {
+            e.stopPropagation(); // Prevent the parking lot click event
+            if (selectedTruck) {
+                selectedTruck.classList.remove('selected');
+            }
+            selectedTruck = e.target.closest('.food-truck');
+            selectedTruck.classList.add('selected');
+            document.getElementById('menu').style.display = 'block';
+            document.getElementById('truck-width').value = Math.round(selectedTruck.offsetWidth / pixelToFootRatio);
+            document.getElementById('truck-length').value = Math.round(selectedTruck.offsetHeight / pixelToFootRatio);
+            document.getElementById('truck-action-button').innerText = 'Update'; // Change button text to Update
+            document.getElementById('truck-action-button').style.display = 'block';
+            document.getElementById('get-truck').style.display = 'none';
+        }
+
+        function unselectTruck() {
+            if (selectedTruck) {
+                selectedTruck.classList.remove('selected');
+                selectedTruck = null;
+                document.getElementById('menu').style.display = 'none';
+                resetButtons();
+            }
+        }
+
+        function rotateTruck(degrees) {
+            if (selectedTruck) {
+                const currentRotation = getRotationDegrees(selectedTruck);
+                selectedTruck.style.transform = `rotate(${currentRotation + degrees}deg)`;
+                selectedTruck.querySelector('.truck-number').style.transform = `rotate(${-currentRotation - degrees}deg)`; // Keep number upright
+            }
+        }
+
+        function getRotationDegrees(element) {
+            const style = window.getComputedStyle(element, null);
+            const matrix = style.getPropertyValue('transform');
+
+            if (matrix === 'none') {
+                return 0;
+            }
+
+            const values = matrix.split('(')[1].split(')')[0].split(',');
+            const a = values[0];
+            const b = values[1];
+            const angle = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+            return angle < 0 ? angle + 360 : angle;
+        }
+
+        function deleteTruck() {
+            if (selectedTruck) {
+                const truckNumber = parseInt(selectedTruck.querySelector('.truck-number').textContent, 10);
+                availableNumbers.push(truckNumber);
+                availableNumbers.sort((a, b) => a - b); // Keep the numbers sorted
+                selectedTruck.remove();
+                document.getElementById('menu').style.display = 'none';
+                selectedTruck = null;
+                resetButtons();
+            }
+        }
+
+        document.getElementById('parking-lot').addEventListener('mousedown', function(event) {
+            if (event.target.id === 'parking-lot') {
+                unselectTruck();
+            } else if (event.target.closest('.food-truck')) {
+                selectTruck(event);
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            document.getElementById('trash-can').style.visibility = 'hidden'; // Hide trash can on mouse up
+        });
+
+        function getNextTruckNumber() {
+            if (availableNumbers.length > 0) {
+                return availableNumbers.shift(); // Use the lowest available number
+            } else {
+                return ++truckCount;
+            }
+        }
+
+        function resetButtons() {
+            document.getElementById('truck-action-button').style.display = 'none';
+            document.getElementById('get-truck').style.display = 'block';
+        }
+
+        function saveConfiguration() {
+            const trucks = document.querySelectorAll('.food-truck');
+            const configuration = Array.from(trucks).map(truck => {
+                const truckNumber = parseInt(truck.querySelector('.truck-number').textContent, 10);
+                const width = Math.round(truck.offsetWidth / pixelToFootRatio);
+                const height = Math.round(truck.offsetHeight / pixelToFootRatio);
+                const left = truck.style.left;
+                const top = truck.style.top;
+                const rotation = getRotationDegrees(truck);
+                return { truckNumber, width, height, left, top, rotation };
+            });
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configuration));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "config.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function loadConfiguration(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const configuration = JSON.parse(e.target.result);
+                loadTrucks(configuration);
+            };
+            reader.readAsText(file);
+        }
+
+        async function exportToPDF() {
+            const parkingLot = document.getElementById('parking-lot');
+            const canvas = await html2canvas(parkingLot, {
+                backgroundColor: null,
+                useCORS: true  // Enable cross-origin resource sharing
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF('landscape');
+            pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+            pdf.save('parking-lot.pdf');
+        }
+
+        function enableRuler() {
+            rulerEnabled = true;
+            rulerPoints = [];
+            document.getElementById('ruler-measurement').textContent = ''; // Clear previous measurement
+            document.getElementById('parking-lot').addEventListener('click', addRulerPoint);
+        }
+
+        function addRulerPoint(event) {
+            if (!rulerEnabled) return;
+            const point = document.createElement('div');
+            point.className = 'ruler-point';
+            point.style.left = event.clientX + 'px';
+            point.style.top = event.clientY + 'px';
+            document.getElementById('parking-lot').appendChild(point);
+            rulerPoints.push({ x: event.clientX, y: event.clientY, element: point });
+
+            if (rulerPoints.length === 2) {
+                calculateDistance();
+                document.getElementById('parking-lot').removeEventListener('click', addRulerPoint);
+                rulerEnabled = false;
+            }
+        }
+
+        function calculateDistance() {
+            const pointA = rulerPoints[0];
+            const pointB = rulerPoints[1];
+            const deltaX = pointB.x - pointA.x;
+            const deltaY = pointB.y - pointA.y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY) / pixelToFootRatio;
+            document.getElementById('ruler-measurement').textContent = `Distance: ${distance.toFixed(2)} ft`;
+        }
+
+        function clearRuler() {
+            rulerPoints.forEach(point => point.element.remove());
+            rulerPoints = [];
+            rulerEnabled = false;
+            document.getElementById('ruler-measurement').textContent = '';
+        }
+
+        function loadTrucks(configuration) {
+            document.querySelectorAll('.food-truck').forEach(truck => truck.remove()); // Remove existing trucks
+            configuration.forEach(truckData => {
+                const newTruck = document.createElement('div');
+                newTruck.className = 'food-truck';
+                newTruck.id = 'truck' + truckData.truckNumber;
+                newTruck.style.width = (truckData.width * pixelToFootRatio) + 'px';
+                newTruck.style.height = (truckData.height * pixelToFootRatio) + 'px';
+                newTruck.style.left = truckData.left;
+                newTruck.style.top = truckData.top;
+                newTruck.style.transform = `rotate(${truckData.rotation}deg)`;
+
+                const truckNumberDiv = document.createElement('div');
+                truckNumberDiv.className = 'truck-number';
+                truckNumberDiv.textContent = truckData.truckNumber;
+                truckNumberDiv.style.transform = `rotate(${-truckData.rotation}deg)`; // Keep number upright
+                newTruck.appendChild(truckNumberDiv);
+
+                newTruck.draggable = false;
+                newTruck.onmousedown = function(e) {
+                    dragMouseDown(e, newTruck);
+                };
+                newTruck.onclick = function(e) {
+                    selectTruck(e);
+                };
+
+                document.getElementById('parking-lot').appendChild(newTruck);
+            });
+            truckCount = configuration.length;
+            availableNumbers = [];
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const defaultConfig = [{"truckNumber":1,"width":8,"height":20,"left":"1175px","top":"111.5px","rotation":0},{"truckNumber":2,"width":8,"height":20,"left":"1175px","top":"147.5px","rotation":0},{"truckNumber":3,"width":8,"height":20,"left":"1176px","top":"195.5px","rotation":0},{"truckNumber":4,"width":8,"height":20,"left":"1176px","top":"230.5px","rotation":0},{"truckNumber":5,"width":8,"height":24,"left":"1174px","top":"338.5px","rotation":0},{"truckNumber":6,"width":8,"height":24,"left":"1174px","top":"379.5px","rotation":0},{"truckNumber":7,"width":8,"height":12,"left":"713px","top":"327.5px","rotation":0},{"truckNumber":8,"width":8,"height":20,"left":"726.223px","top":"344.277px","rotation":90},{"truckNumber":9,"width":8,"height":24,"left":"765px","top":"367.5px","rotation":0},{"truckNumber":10,"width":8,"height":24,"left":"765px","top":"410.5px","rotation":0},{"truckNumber":11,"width":8,"height":24,"left":"731.992px","top":"422.508px","rotation":90},{"truckNumber":12,"width":8,"height":24,"left":"688.984px","top":"423.516px","rotation":90},{"truckNumber":13,"width":8,"height":21,"left":"667px","top":"449.5px","rotation":0},{"truckNumber":14,"width":8,"height":18,"left":"638.848px","top":"461.652px","rotation":90},{"truckNumber":15,"width":8,"height":10,"left":"615px","top":"468.5px","rotation":0},{"truckNumber":16,"width":8,"height":24,"left":"637.992px","top":"496.508px","rotation":90},{"truckNumber":17,"width":8,"height":24,"left":"666px","top":"515.5px","rotation":0},{"truckNumber":18,"width":8,"height":24,"left":"666px","top":"560.5px","rotation":0},{"truckNumber":19,"width":8,"height":24,"left":"621.984px","top":"573.516px","rotation":90},{"truckNumber":20,"width":8,"height":24,"left":"574.992px","top":"591.508px","rotation":90},{"truckNumber":21,"width":8,"height":24,"left":"531.992px","top":"592.508px","rotation":90},{"truckNumber":22,"width":8,"height":24,"left":"495.984px","top":"620.516px","rotation":90},{"truckNumber":23,"width":8,"height":24,"left":"452.984px","top":"620.516px","rotation":90},{"truckNumber":24,"width":8,"height":20,"left":"429px","top":"601.5px","rotation":0},{"truckNumber":25,"width":8,"height":20,"left":"429px","top":"564.5px","rotation":0},{"truckNumber":26,"width":8,"height":20,"left":"428px","top":"508.5px","rotation":0},{"truckNumber":27,"width":8,"height":24,"left":"456.969px","top":"496.531px","rotation":90},{"truckNumber":28,"width":8,"height":16,"left":"488px","top":"504.5px","rotation":0},{"truckNumber":29,"width":8,"height":15,"left":"490px","top":"474.5px","rotation":0},{"truckNumber":30,"width":8,"height":17,"left":"464.277px","top":"467.199px","rotation":90},{"truckNumber":31,"width":8,"height":19,"left":"434.059px","top":"465.441px","rotation":90},{"truckNumber":32,"width":8,"height":24,"left":"428px","top":"391.5px","rotation":0},{"truckNumber":33,"width":8,"height":24,"left":"429px","top":"348.5px","rotation":0},{"truckNumber":34,"width":8,"height":24,"left":"455.992px","top":"337.508px","rotation":90},{"truckNumber":35,"width":8,"height":16,"left":"493px","top":"326.5px","rotation":0},{"truckNumber":36,"width":8,"height":20,"left":"534.238px","top":"342.262px","rotation":90},{"truckNumber":37,"width":8,"height":17,"left":"566.363px","top":"346.129px","rotation":90},{"truckNumber":38,"width":8,"height":20,"left":"633.238px","top":"344.262px","rotation":90},{"truckNumber":39,"width":8,"height":17,"left":"666.684px","top":"347.816px","rotation":90},{"truckNumber":40,"width":8,"height":19,"left":"663.113px","top":"392.379px","rotation":90},{"truckNumber":41,"width":8,"height":20,"left":"626.73px","top":"392.754px","rotation":90},{"truckNumber":42,"width":8,"height":20,"left":"566.246px","top":"391.254px","rotation":90},{"truckNumber":43,"width":8,"height":20,"left":"528.246px","top":"392.254px","rotation":90},{"truckNumber":44,"width":8,"height":14,"left":"569.961px","top":"469.5px","rotation":90},{"truckNumber":45,"width":8,"height":15,"left":"545.664px","top":"467.812px","rotation":90},{"truckNumber":46,"width":8,"height":13,"left":"522.812px","top":"470.688px","rotation":90},{"truckNumber":47,"width":6,"height":16,"left":"516px","top":"489.5px","rotation":0},{"truckNumber":48,"width":8,"height":20,"left":"534.246px","top":"503.254px","rotation":90},{"truckNumber":49,"width":8,"height":18,"left":"568.738px","top":"505.754px","rotation":90},{"truckNumber":50,"width":6,"height":14,"left":"588px","top":"488.5px","rotation":0},{"truckNumber":51,"width":8,"height":16,"left":"578.496px","top":"548.004px","rotation":90},{"truckNumber":52,"width":8,"height":18,"left":"548.871px","top":"547.629px","rotation":90},{"truckNumber":53,"width":8,"height":19,"left":"518.059px","top":"546.441px","rotation":90},{"truckNumber":54,"width":8,"height":10,"left":"436px","top":"295.5px","rotation":0},{"truckNumber":55,"width":8,"height":12,"left":"572px","top":"314.5px","rotation":0},{"truckNumber":56,"width":8,"height":10,"left":"628px","top":"314.5px","rotation":0},{"truckNumber":57,"width":8,"height":20,"left":"444px","top":"240.5px","rotation":0},{"truckNumber":58,"width":8,"height":20,"left":"444px","top":"205.5px","rotation":0},{"truckNumber":59,"width":8,"height":15,"left":"444px","top":"179.5px","rotation":0},{"truckNumber":60,"width":8,"height":19,"left":"472.059px","top":"169.441px","rotation":90},{"truckNumber":61,"width":8,"height":16,"left":"490px","top":"192.5px","rotation":0},{"truckNumber":62,"width":8,"height":17,"left":"489px","top":"221.5px","rotation":0},{"truckNumber":63,"width":8,"height":13,"left":"488px","top":"252.5px","rotation":0},{"truckNumber":64,"width":8,"height":15,"left":"677px","top":"311.5px","rotation":0},{"truckNumber":65,"width":5,"height":13,"left":"613px","top":"486.5px","rotation":0}];
+            loadTrucks(defaultConfig);
+        });
+    </script>
+</body>
+</html>
